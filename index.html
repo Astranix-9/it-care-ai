@@ -108,30 +108,191 @@
     </main>
 
     <script>
+        // 確実なAPI設定
         const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz9ZoO2XtM-rGUwhUxrRysVV8GjPl9tjAfynX_OedNToGA1l8p29Kv-oefePaCOMx1r/exec';
-        let isVoiceListening = false; let recognition = null; let isTyping = false;
+        
+        let isVoiceListening = false; 
+        let recognition = null; 
+        let isTyping = false;
+        
+        // デバッグ用ログ
+        console.log('🚀 IT介護AI システム起動');
+        console.log('📡 API Endpoint:', API_ENDPOINT);
+        
+        // 音声認識設定
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'ja-JP';
-            recognition.onresult = function(event) { const transcript = event.results[0][0].transcript; document.getElementById('messageInput').value = transcript; autoResize(document.getElementById('messageInput')); stopVoiceListening(); };
-            recognition.onend = function() { stopVoiceListening(); }; recognition.onerror = function(event) { console.error('Speech recognition error:', event.error); stopVoiceListening(); };
+            recognition = new SpeechRecognition(); 
+            recognition.continuous = false; 
+            recognition.interimResults = false; 
+            recognition.lang = 'ja-JP';
+            recognition.onresult = function(event) { 
+                const transcript = event.results[0][0].transcript; 
+                document.getElementById('messageInput').value = transcript; 
+                autoResize(document.getElementById('messageInput')); 
+                stopVoiceListening(); 
+            };
+            recognition.onend = function() { stopVoiceListening(); }; 
+            recognition.onerror = function(event) { 
+                console.error('Speech recognition error:', event.error); 
+                stopVoiceListening(); 
+            };
         }
-        function toggleVoice() { if (!recognition) { alert('音声認識がサポートされていません'); return; } if (isVoiceListening) { recognition.stop(); } else { recognition.start(); startVoiceListening(); } }
-        function startVoiceListening() { isVoiceListening = true; const voiceBtn = document.getElementById('voiceBtn'); voiceBtn.innerHTML = '🔴'; }
-        function stopVoiceListening() { isVoiceListening = false; const voiceBtn = document.getElementById('voiceBtn'); voiceBtn.innerHTML = '🎤'; }
-        function autoResize(textarea) { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px'; }
-        function quickSend(message) { document.getElementById('messageInput').value = message; sendMessage(); }
-        function startConversation(message) { hideWelcomeMessage(); quickSend(message); }
-        function hideWelcomeMessage() { const welcomeMsg = document.getElementById('welcomeMessage'); if (welcomeMsg) { welcomeMsg.style.display = 'none'; } }
-        async function sendMessage() { const input = document.getElementById('messageInput'); const message = input.value.trim(); if (!message || isTyping) return; hideWelcomeMessage(); addMessage(message, 'user'); input.value = ''; autoResize(input); document.getElementById('suggestions').style.display = 'none'; showTyping(); try { const response = await callAPI(message); hideTyping(); addMessage(response, 'ai'); } catch (error) { hideTyping(); addMessage('申し訳ございません。一時的にエラーが発生しました。しばらく後にもう一度お試しください。', 'ai'); console.error('API Error:', error); } }
-        async function callAPI(message) { try { const response = await fetch(API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message }), mode: 'cors' }); if (!response.ok) { throw new Error(`HTTP ${response.status}: ${response.statusText}`); } const data = await response.json(); if (data.success && data.message) { return data.message; } else { throw new Error(data.message || '不明なエラーが発生しました'); } } catch (error) { console.error('API Error:', error); throw error; } }
-        function addMessage(text, sender) { const chatArea = document.getElementById('chatArea'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${sender}`; const avatar = document.createElement('div'); avatar.className = `avatar ${sender}`; avatar.innerHTML = sender === 'ai' ? '🤖' : '👤'; const content = document.createElement('div'); content.className = 'message-content'; content.innerHTML = text; messageDiv.appendChild(avatar); messageDiv.appendChild(content); chatArea.appendChild(messageDiv); scrollToBottom(); }
-        function showTyping() { isTyping = true; document.getElementById('typingIndicator').style.display = 'flex'; scrollToBottom(); }
-        function hideTyping() { isTyping = false; document.getElementById('typingIndicator').style.display = 'none'; }
-        function scrollToBottom() { const chatArea = document.getElementById('chatArea'); chatArea.scrollTop = chatArea.scrollHeight; }
-        document.addEventListener('DOMContentLoaded', function() { const input = document.getElementById('messageInput'); input.focus(); });
-        document.getElementById('messageInput').addEventListener('keydown', function(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } });
-        document.getElementById('messageInput').addEventListener('input', function() { autoResize(this); });
+        
+        function toggleVoice() { 
+            if (!recognition) { 
+                alert('音声認識がサポートされていません'); 
+                return; 
+            } 
+            if (isVoiceListening) { 
+                recognition.stop(); 
+            } else { 
+                recognition.start(); 
+                startVoiceListening(); 
+            } 
+        }
+        
+        function startVoiceListening() { 
+            isVoiceListening = true; 
+            const voiceBtn = document.getElementById('voiceBtn'); 
+            voiceBtn.innerHTML = '🔴'; 
+        }
+        
+        function stopVoiceListening() { 
+            isVoiceListening = false; 
+            const voiceBtn = document.getElementById('voiceBtn'); 
+            voiceBtn.innerHTML = '🎤'; 
+        }
+        
+        function autoResize(textarea) { 
+            textarea.style.height = 'auto'; 
+            textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px'; 
+        }
+        
+        function quickSend(message) { 
+            document.getElementById('messageInput').value = message; 
+            sendMessage(); 
+        }
+        
+        function startConversation(message) { 
+            hideWelcomeMessage(); 
+            quickSend(message); 
+        }
+        
+        function hideWelcomeMessage() { 
+            const welcomeMsg = document.getElementById('welcomeMessage'); 
+            if (welcomeMsg) { 
+                welcomeMsg.style.display = 'none'; 
+            } 
+        }
+        
+        async function sendMessage() { 
+            const input = document.getElementById('messageInput'); 
+            const message = input.value.trim(); 
+            
+            if (!message || isTyping) return; 
+            
+            console.log('📤 送信メッセージ:', message);
+            
+            hideWelcomeMessage(); 
+            addMessage(message, 'user'); 
+            input.value = ''; 
+            autoResize(input); 
+            document.getElementById('suggestions').style.display = 'none'; 
+            showTyping(); 
+            
+            try { 
+                const response = await callAPI(message); 
+                hideTyping(); 
+                addMessage(response, 'ai'); 
+            } catch (error) { 
+                hideTyping(); 
+                console.error('❌ API Error:', error);
+                addMessage('申し訳ございません。一時的にエラーが発生しました。\n\n詳細: ' + error.message, 'ai'); 
+            } 
+        }
+        
+        async function callAPI(message) { 
+            console.log('🌐 API呼び出し開始:', API_ENDPOINT);
+            
+            try { 
+                const response = await fetch(API_ENDPOINT, { 
+                    method: 'POST', 
+                    headers: { 
+                        'Content-Type': 'application/json' 
+                    }, 
+                    body: JSON.stringify({ message: message }), 
+                    mode: 'cors' 
+                }); 
+                
+                console.log('📡 HTTP Status:', response.status);
+                
+                if (!response.ok) { 
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`); 
+                } 
+                
+                const data = await response.json(); 
+                console.log('📥 受信データ:', data);
+                
+                if (data.success && data.message) { 
+                    return data.message; 
+                } else { 
+                    throw new Error(data.message || '不明なエラーが発生しました'); 
+                } 
+            } catch (error) { 
+                console.error('💥 API Call Error:', error); 
+                throw error; 
+            } 
+        }
+        
+        function addMessage(text, sender) { 
+            const chatArea = document.getElementById('chatArea'); 
+            const messageDiv = document.createElement('div'); 
+            messageDiv.className = `message ${sender}`; 
+            const avatar = document.createElement('div'); 
+            avatar.className = `avatar ${sender}`; 
+            avatar.innerHTML = sender === 'ai' ? '🤖' : '👤'; 
+            const content = document.createElement('div'); 
+            content.className = 'message-content'; 
+            content.innerHTML = text; 
+            messageDiv.appendChild(avatar); 
+            messageDiv.appendChild(content); 
+            chatArea.appendChild(messageDiv); 
+            scrollToBottom(); 
+        }
+        
+        function showTyping() { 
+            isTyping = true; 
+            document.getElementById('typingIndicator').style.display = 'flex'; 
+            scrollToBottom(); 
+        }
+        
+        function hideTyping() { 
+            isTyping = false; 
+            document.getElementById('typingIndicator').style.display = 'none'; 
+        }
+        
+        function scrollToBottom() { 
+            const chatArea = document.getElementById('chatArea'); 
+            chatArea.scrollTop = chatArea.scrollHeight; 
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() { 
+            const input = document.getElementById('messageInput'); 
+            input.focus(); 
+            console.log('✅ IT介護AI フロントエンド準備完了');
+        });
+        
+        document.getElementById('messageInput').addEventListener('keydown', function(event) { 
+            if (event.key === 'Enter' && !event.shiftKey) { 
+                event.preventDefault(); 
+                sendMessage(); 
+            } 
+        });
+        
+        document.getElementById('messageInput').addEventListener('input', function() { 
+            autoResize(this); 
+        });
     </script>
 </body>
 </html>
