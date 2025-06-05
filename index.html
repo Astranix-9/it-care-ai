@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT介護AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0f0f23; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; }
+        .header { background: linear-gradient(90deg, #1a1a2e, #16213e); padding: 1rem 2rem; border-bottom: 1px solid #2a2a3e; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem; font-weight: 600; }
+        .status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #10b981; }
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .chat-container { flex: 1; display: flex; flex-direction: column; max-width: 800px; margin: 0 auto; width: 100%; padding: 0 1rem; }
+        .chat-area { flex: 1; padding: 2rem 0; overflow-y: auto; }
+        .message { margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem; }
+        .message.user { flex-direction: row-reverse; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .avatar.ai { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .avatar.user { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .message-content { max-width: 70%; background: #1a1a2e; padding: 1rem 1.25rem; border-radius: 1rem; line-height: 1.5; font-size: 0.95rem; border: 1px solid #2a2a3e; }
+        .message.user .message-content { background: #2563eb; border-color: #3b82f6; }
+        .message.ai .message-content { background: #1a1a2e; border-color: #374151; }
+        .input-container { background: #1a1a2e; border: 1px solid #374151; border-radius: 1rem; padding: 1rem; margin-bottom: 2rem; display: flex; gap: 0.75rem; align-items: flex-end; }
+        .input-field { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-size: 1rem; line-height: 1.5; min-height: 1.5rem; resize: none; font-family: inherit; }
+        .input-field::placeholder { color: #6b7280; }
+        .action-btn { width: 40px; height: 40px; border-radius: 0.5rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s; flex-shrink: 0; }
+        .voice-btn { background: #ef4444; color: white; }
+        .voice-btn:hover { background: #dc2626; }
+        .send-btn { background: #10b981; color: white; }
+        .send-btn:hover { background: #059669; }
+        .typing-indicator { display: none; margin-bottom: 1.5rem; }
+        .typing-content { background: #1a1a2e; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #374151; display: flex; align-items: center; gap: 0.5rem; max-width: 70%; }
+        .typing-dots { display: flex; gap: 4px; }
+        .typing-dots span { width: 6px; height: 6px; background: #9ca3af; border-radius: 50%; animation: typing 1.4s infinite; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-8px); opacity: 1; } }
+        .suggestions { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .suggestion-chip { background: #374151; color: #d1d5db; padding: 0.5rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; cursor: pointer; border: 1px solid #4b5563; transition: all 0.2s; }
+        .suggestion-chip:hover { background: #4b5563; border-color: #6b7280; }
+        .welcome-message { text-align: center; padding: 2rem; color: #9ca3af; }
+        .welcome-message h2 { margin-bottom: 1rem; color: #ffffff; font-size: 1.5rem; }
+        .specialties { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
+        .specialty-card { background: #1a1a2e; border: 1px solid #374151; border-radius: 0.75rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .specialty-card:hover { border-color: #667eea; transform: translateY(-2px); }
+        .specialty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .specialty-title { font-weight: 600; margin-bottom: 0.5rem; color: #ffffff; }
+        .specialty-desc { font-size: 0.85rem; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">🤖 IT介護AI</div>
+        <div class="status"><div class="status-dot"></div>オンライン</div>
+    </header>
+    
+    <main class="chat-container">
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-message" id="welcomeMessage">
+                <h2>専門サポートAIへようこそ</h2>
+                <p>IT操作とエンタメ作品について、なんでもお聞きください</p>
+                <div class="specialties">
+                    <div class="specialty-card" onclick="startConversation('スマホの使い方を教えて')">
+                        <div class="specialty-icon">📱</div>
+                        <div class="specialty-title">スマホサポート</div>
+                        <div class="specialty-desc">基本操作から設定まで</div>
+                    </div>
+                    <div class="specialty-card" onclick="startConversation('パソコンの調子が悪いです')">
+                        <div class="specialty-icon">💻</div>
+                        <div class="specialty-title">PC サポート</div>
+                        <div class="specialty-desc">トラブル解決をお手伝い</div>
+                    </div>
+                    <div class="specialty-card" onclick="startConversation('おすすめの映画ありますか？')">
+                        <div class="specialty-icon">🎬</div>
+                        <div class="specialty-title">映画相談</div>
+                        <div class="specialty-desc">作品選びや感想トーク</div>
+                    </div>
+                    <div class="specialty-card" onclick="startConversation('面白いアニメを探してます')">
+                        <div class="specialty-icon">📺</div>
+                        <div class="specialty-title">アニメ相談</div>
+                        <div class="specialty-desc">おすすめや感想交換</div>
+                    </div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="avatar ai">🤖</div>
+                <div class="typing-content">
+                    <span>AI が入力中</span>
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="suggestions" id="suggestions">
+            <div class="suggestion-chip" onclick="quickSend('WiFiに繋がらない')">📶 WiFi接続</div>
+            <div class="suggestion-chip" onclick="quickSend('アプリがダウンロードできない')">📲 アプリ問題</div>
+            <div class="suggestion-chip" onclick="quickSend('今話題の映画は？')">🔥 話題の映画</div>
+            <div class="suggestion-chip" onclick="quickSend('90年代のアニメでおすすめは？')">✨ 名作アニメ</div>
+        </div>
+        
+        <div class="input-container">
+            <textarea class="input-field" id="messageInput" placeholder="メッセージを入力してください..." rows="1"></textarea>
+            <button class="action-btn voice-btn" id="voiceBtn" onclick="toggleVoice()">🎤</button>
+            <button class="action-btn send-btn" onclick="sendMessage()">📤</button>
+        </div>
+    </main>
+
+    <script>
+        const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz9ZoO2XtM-rGUwhUxrRysVV8GjPl9tjAfynX_OedNToGA1l8p29Kv-oefePaCOMx1r/exec';
+        let isVoiceListening = false; let recognition = null; let isTyping = false;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'ja-JP';
+            recognition.onresult = function(event) { const transcript = event.results[0][0].transcript; document.getElementById('messageInput').value = transcript; autoResize(document.getElementById('messageInput')); stopVoiceListening(); };
+            recognition.onend = function() { stopVoiceListening(); }; recognition.onerror = function(event) { console.error('Speech recognition error:', event.error); stopVoiceListening(); };
+        }
+        function toggleVoice() { if (!recognition) { alert('音声認識がサポートされていません'); return; } if (isVoiceListening) { recognition.stop(); } else { recognition.start(); startVoiceListening(); } }
+        function startVoiceListening() { isVoiceListening = true; const voiceBtn = document.getElementById('voiceBtn'); voiceBtn.innerHTML = '🔴'; }
+        function stopVoiceListening() { isVoiceListening = false; const voiceBtn = document.getElementById('voiceBtn'); voiceBtn.innerHTML = '🎤'; }
+        function autoResize(textarea) { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px'; }
+        function quickSend(message) { document.getElementById('messageInput').value = message; sendMessage(); }
+        function startConversation(message) { hideWelcomeMessage(); quickSend(message); }
+        function hideWelcomeMessage() { const welcomeMsg = document.getElementById('welcomeMessage'); if (welcomeMsg) { welcomeMsg.style.display = 'none'; } }
+        async function sendMessage() { const input = document.getElementById('messageInput'); const message = input.value.trim(); if (!message || isTyping) return; hideWelcomeMessage(); addMessage(message, 'user'); input.value = ''; autoResize(input); document.getElementById('suggestions').style.display = 'none'; showTyping(); try { const response = await callAPI(message); hideTyping(); addMessage(response, 'ai'); } catch (error) { hideTyping(); addMessage('申し訳ございません。一時的にエラーが発生しました。しばらく後にもう一度お試しください。', 'ai'); console.error('API Error:', error); } }
+        async function callAPI(message) { try { const response = await fetch(API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message }), mode: 'cors' }); if (!response.ok) { throw new Error(`HTTP ${response.status}: ${response.statusText}`); } const data = await response.json(); if (data.success && data.message) { return data.message; } else { throw new Error(data.message || '不明なエラーが発生しました'); } } catch (error) { console.error('API Error:', error); throw error; } }
+        function addMessage(text, sender) { const chatArea = document.getElementById('chatArea'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${sender}`; const avatar = document.createElement('div'); avatar.className = `avatar ${sender}`; avatar.innerHTML = sender === 'ai' ? '🤖' : '👤'; const content = document.createElement('div'); content.className = 'message-content'; content.innerHTML = text; messageDiv.appendChild(avatar); messageDiv.appendChild(content); chatArea.appendChild(messageDiv); scrollToBottom(); }
+        function showTyping() { isTyping = true; document.getElementById('typingIndicator').style.display = 'flex'; scrollToBottom(); }
+        function hideTyping() { isTyping = false; document.getElementById('typingIndicator').style.display = 'none'; }
+        function scrollToBottom() { const chatArea = document.getElementById('chatArea'); chatArea.scrollTop = chatArea.scrollHeight; }
+        document.addEventListener('DOMContentLoaded', function() { const input = document.getElementById('messageInput'); input.focus(); });
+        document.getElementById('messageInput').addEventListener('keydown', function(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } });
+        document.getElementById('messageInput').addEventListener('input', function() { autoResize(this); });
+    </script>
+</body>
+</html>
